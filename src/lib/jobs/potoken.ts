@@ -159,7 +159,7 @@ async function checkToken({
         for (const video of videos) {
             const youtubePlayerResponseJson = await youtubePlayerParsing({
                 innertubeClient: instantiatedInnertubeClient,
-                videoId: video.id,
+                videoId: video!.id,
                 config,
                 tokenMinter: integrityTokenBasedMinter,
                 metrics,
@@ -175,7 +175,7 @@ async function checkToken({
                 console.warn(err);
                 continue;
             }
-            const result = await fetchImpl(validFormat?.url, { method: "HEAD" });
+            const result = await fetchImpl(validFormat!.url, { method: "HEAD" });
             if (result.status !== 200) {
                 err = new Error(`did not get a 200 when checking video, got ${result.status} instead`);
                 console.warn(err);
