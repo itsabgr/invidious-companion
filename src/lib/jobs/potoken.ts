@@ -192,6 +192,41 @@ async function checkToken({
         }
         throw err;
     } catch (err) {
+        // fallback, try to use environment variable for testing video if any exists
+        const staticVideoId = Deno.env.get("STATIC_POTOKEN_VALIDATION_VIDEO")
+        if ((staticVideoId?.length ?? 0) > 0) {
+            const youtubePlayerResponseJson = await youtubePlayerParsing({
+                innertubeClient: instantiatedInnertubeClient,
+                //@ts-ignore
+                videoId: staticVideoId ?? "",
+                config,
+                tokenMinter: integrityTokenBasedMinter,
+                metrics,
+                overrideCache: true,
+            });
+            const videoInfo = youtubeVideoInfo(
+                instantiatedInnertubeClient,
+                youtubePlayerResponseJson,
+            );
+            const validFormat = videoInfo.streaming_data?.adaptive_formats[0];
+            if (!validFormat) {
+                err = new Error(
+                    "failed to find valid video with adaptive format to check token against",
+                );
+                console.warn(err);
+            }
+            const result = await fetchImpl(validFormat?.url, {
+                method: "HEAD",
+            });
+            if (result.status !== 200) {
+                err = new Error(
+                    `did not get a 200 when checking video, got ${result.status} instead`,
+                );
+                console.warn(err);
+            } else {
+                return;
+            }
+        }
         console.log("Failed to get valid PO token, will retry", { err });
         throw err;
     }
